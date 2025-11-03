@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// SQLite doesn't support enums, so we use String types with validation in the app
+// Valid values: SUPER_ADMIN, ADMIN, USER, VIEWER
+// Valid TransactionType: INCOME, EXPENSE  
+// Valid PaymentMethod: CASH, CHEQUE, DD, BANK_TRANSFER, CARD, UPI, OTHER
+// Valid Currency: USD, EUR, GBP, INR, JPY, CNY, AUD, CAD, OTHER
+
+model Organization {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  address     String?
+  phone       String?
+  email       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users        User[]
+  transactions Transaction[]
+  categories   Category[]
+
+  @@index([name])
+}
+
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  password       String
+  firstName      String
+  lastName       String
+  phone          String?
+  role           String   @default("USER")
+  isActive       Boolean  @default(true)
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization      Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdTransactions Transaction[] @relation("TransactionCreator")
+
+  @@index([email])
+  @@index([organizationId])
+}
+
+model Category {
+  id             String   @id @default(uuid())
+  name           String
+  description    String?
+  type           String
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([name, organizationId, type])
+  @@index([organizationId])
+}
+
+model Transaction {
+  id             String   @id @default(uuid())
+  type           String
+  amount         Float
+  currency       String   @default("INR")
+  description    String
+  purpose        String?
+  paymentMethod  String
+  payerPayee     String // Who gave money (income) or who received money (expense)
+  recipientGiver String? // To whom it was given (income) or from whom it came (expense)
+  location       String?
+  transactionDate DateTime
+  createdById    String
+  organizationId String
+  categoryId     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation("TransactionCreator", fields: [createdById], references: [id])
+  category     Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  attachments  Attachment[]
+
+  @@index([organizationId])
+  @@index([createdById])
+  @@index([transactionDate])
+  @@index([type])
+}
+
+model Attachment {
+  id            String   @id @default(uuid())
+  filename      String
+  originalName  String
+  mimeType      String
+  size          Int
+  path          String
+  transactionId String
+  createdAt     DateTime @default(now())
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+}
+

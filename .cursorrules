@@ -1,0 +1,47 @@
+# Ledger App - Cursor Rules
+
+## Project Structure
+This is a monorepo with multiple packages:
+- `packages/backend`: Node.js/Express/TypeScript API
+- `packages/web`: React/Vite web application
+- `packages/mobile`: React Native/Expo mobile application
+
+## Code Style
+- Use TypeScript for type safety
+- Follow functional programming patterns where possible
+- Use async/await for asynchronous operations
+- Keep components small and focused
+- Use meaningful variable and function names
+
+## Database
+- Use Prisma ORM for all database operations
+- Always use transactions for related operations
+- Create migrations for schema changes
+- Never expose sensitive data in API responses
+
+## API Design
+- RESTful endpoints
+- Consistent error handling
+- JWT authentication required for protected routes
+- Validate all inputs
+- Return appropriate HTTP status codes
+
+## Security
+- Hash passwords with bcrypt
+- Use JWT for authentication
+- Validate and sanitize all user inputs
+- Implement rate limiting in production
+- Never commit sensitive data or credentials
+
+## Testing
+- Write unit tests for business logic
+- Test API endpoints with integration tests
+- Test UI components with user interaction
+- Use meaningful test descriptions
+
+## Git Workflow
+- Create feature branches from main
+- Write descriptive commit messages
+- Keep commits focused and atomic
+- Squash commits before merging to main
+

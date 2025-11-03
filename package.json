@@ -1,0 +1,26 @@
+{
+  "name": "nidhi",
+  "version": "1.0.0",
+  "description": "Multi-platform financial management application",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "backend": "npm run dev --workspace=backend",
+    "web": "npm run dev --workspace=web",
+    "mobile": "npm run start --workspace=mobile",
+    "dev": "concurrently \"npm:backend\" \"npm:web\"",
+    "setup": "npm install && npm run prisma:generate",
+    "prisma:generate": "npm run prisma:generate --workspace=backend",
+    "check": "node check-setup.js"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
+
