@@ -25,18 +25,62 @@ git push origin main
 
 ### 1.2 Get Database Connection String
 
-**For Supabase (Recommended):**
-1. Go to https://supabase.com
-2. Create a new project
-3. Go to Settings → Database
-4. Under "Connection String", select **"Connection Pooling"**
-5. Copy the connection string (port 6543)
-6. Add `?pgbouncer=true&connection_limit=1` to the end
+**⚠️ You need a PostgreSQL database. Here are free options:**
 
-Example:
+#### Option A: Supabase (Recommended) ⭐
+
+1. **Sign up:** Go to https://supabase.com
+2. **Create project:**
+   - Click "New Project"
+   - Choose organization (create one if needed)
+   - Enter project name (e.g., "nidhi-db")
+   - Enter database password (save this!)
+   - Choose region closest to you
+   - Click "Create new project"
+3. **Wait for setup:** ~2 minutes for project to be ready
+4. **Get connection string:**
+   - Go to **Settings** → **Database**
+   - Scroll to **Connection String** section
+   - Click the **"Connection Pooling"** tab
+   - Select **"Session"** mode
+   - Copy the connection string (it will look like):
+     ```
+     postgresql://postgres.xxxxxxxxxxxxx:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres
+     ```
+   - Replace `[YOUR-PASSWORD]` with your actual database password
+   - Add `?pgbouncer=true&connection_limit=1` at the end
+
+**Final connection string should look like:**
 ```
-postgresql://postgres:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
+postgresql://postgres.xxxxxxxxxxxxx:yourpassword@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
 ```
+
+**Free Tier Limits:**
+- 500MB database storage
+- 2GB bandwidth/month
+- Unlimited API requests
+
+#### Option B: Neon (Alternative)
+
+1. Go to https://neon.tech
+2. Sign up and create a project
+3. Copy the connection string from dashboard
+4. Use it directly (no modifications needed)
+
+**Free Tier Limits:**
+- 0.5GB storage
+- Auto-suspend after 7 days inactive
+
+#### Option C: Railway (Alternative)
+
+1. Go to https://railway.app
+2. Sign up (free $5 credit)
+3. Create PostgreSQL database
+4. Copy connection string
+
+**Free Tier:**
+- $5 free credit/month
+- Pay-as-you-go after
 
 ---
 
@@ -61,22 +105,69 @@ postgresql://postgres:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgre
 
 ### 2.3 Set Environment Variables
 
-Click **"Environment Variables"** and add:
+**⚠️ IMPORTANT: You must set these before deploying!**
 
+Click **"Environment Variables"** and add the following:
+
+#### Required Environment Variables:
+
+**1. DATABASE_URL** (Required - Get from Supabase/Neon/Railway)
 ```env
 DATABASE_URL=postgresql://user:password@host:port/database?pgbouncer=true&connection_limit=1
-JWT_SECRET=your_secure_secret_key_minimum_32_characters
+```
+
+**How to get DATABASE_URL:**
+
+**Option A: Supabase (Recommended - Free)**
+1. Go to https://supabase.com and sign up
+2. Create a new project (choose a name and password)
+3. Wait for project to be ready (~2 minutes)
+4. Go to **Settings** → **Database**
+5. Under **Connection String**, select **"Connection Pooling"** tab
+6. Copy the connection string (port 6543)
+7. Replace `[YOUR-PASSWORD]` with your project password
+8. Add `?pgbouncer=true&connection_limit=1` at the end
+
+Example:
+```
+postgresql://postgres.xxxxxxxxxxxxx:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
+```
+
+**Option B: Neon (Free Alternative)**
+1. Go to https://neon.tech and sign up
+2. Create a new project
+3. Copy the connection string from the dashboard
+4. Use it as-is
+
+**2. JWT_SECRET** (Required - Generate a secure random string)
+```env
+JWT_SECRET=your_secure_secret_key_minimum_32_characters_long_use_random_string
+```
+
+**How to generate JWT_SECRET:**
+- Use a random string generator (minimum 32 characters)
+- Or run: `openssl rand -base64 32` in terminal
+- Or use: https://randomkeygen.com/
+
+**3. JWT_EXPIRES_IN** (Required)
+```env
 JWT_EXPIRES_IN=7d
+```
+
+**4. NODE_ENV** (Required)
+```env
 NODE_ENV=production
 ```
 
-**Optional (for email):**
+#### Optional Environment Variables (for email):
+
+**Option 1: Resend (Easiest)**
 ```env
-RESEND_API_KEY=re_your_api_key
+RESEND_API_KEY=re_your_api_key_here
 EMAIL_FROM=onboarding@resend.dev
 ```
 
-**Or use SMTP:**
+**Option 2: SMTP (Gmail, etc.)**
 ```env
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
@@ -85,6 +176,12 @@ SMTP_USER=your-email@gmail.com
 SMTP_PASSWORD=your-app-password
 EMAIL_FROM=your-email@gmail.com
 ```
+
+**⚠️ Important Notes:**
+- Set environment variables **BEFORE** clicking Deploy
+- After adding variables, click **"Save"**
+- Variables are case-sensitive
+- For DATABASE_URL, make sure to use the **connection pooler** URL (port 6543) for Supabase
 
 ### 2.4 Deploy Backend
 
@@ -179,12 +276,34 @@ Open browser console (F12) and check:
 
 ### Backend Issues
 
+**DATABASE_URL not found error:**
+- ❌ **Error:** `Environment variable not found: DATABASE_URL`
+- ✅ **Solution:** 
+  1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables
+  2. Click **"Add New"** 
+  3. Key: `DATABASE_URL`
+  4. Value: Your PostgreSQL connection string (see Step 1.2 for instructions)
+  5. Select **Production, Preview, Development** (or at least Production)
+  6. Click **"Save"**
+  7. **Important:** Redeploy your project after adding variables
+     - Go to Deployments tab
+     - Click the "..." menu on latest deployment
+     - Click "Redeploy"
+  8. Wait for redeploy to complete
+- **Getting DATABASE_URL:** See Step 1.2 above for detailed instructions
+- **For Supabase:** Use connection pooler URL (port 6543) with `?pgbouncer=true&connection_limit=1`
+- **Format example:**
+  ```
+  postgresql://postgres.xxx:password@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
+  ```
+
 **API returns 500 error:**
 1. Check Vercel Dashboard → Your Project → Deployments
 2. Click on latest deployment
 3. Check **"Runtime Logs"** for errors
-4. Verify `DATABASE_URL` is correct
+4. Verify `DATABASE_URL` is set and correct
 5. Check Prisma client is generated (should be automatic)
+6. Verify all required environment variables are set (DATABASE_URL, JWT_SECRET, etc.)
 
 **Uploads directory error:**
 - ✅ **Fixed:** The app now uses memory storage on Vercel
