@@ -96,10 +96,11 @@ async function initializeDatabase() {
 
 // Export the Express app as a serverless function
 export default async function handler(req: express.Request, res: express.Response) {
-  // Set CORS headers FIRST before anything else
-  const origin = req.headers.origin;
+  // Set CORS headers FIRST before anything else - CRITICAL for Vercel
+  const origin = req.headers.origin || req.headers.referer?.split('/').slice(0, 3).join('/');
   
-  if (origin) {
+  // Always set CORS headers
+  if (origin && origin !== '*') {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   } else {
@@ -111,9 +112,11 @@ export default async function handler(req: express.Request, res: express.Respons
   res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
   res.setHeader('Access-Control-Max-Age', '86400');
   
-  // Handle preflight OPTIONS request immediately
+  // Handle preflight OPTIONS request immediately - MUST return before Express
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    res.status(200);
+    res.end();
+    return;
   }
   
   // Initialize database on first request
@@ -126,7 +129,7 @@ export default async function handler(req: express.Request, res: express.Respons
   
   res.end = function(chunk?: any, encoding?: any) {
     // Ensure CORS headers are set before ending
-    if (origin) {
+    if (origin && origin !== '*') {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
     } else {
@@ -137,7 +140,7 @@ export default async function handler(req: express.Request, res: express.Respons
   
   res.json = function(body?: any) {
     // Ensure CORS headers are set before sending JSON
-    if (origin) {
+    if (origin && origin !== '*') {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
     } else {
@@ -148,7 +151,7 @@ export default async function handler(req: express.Request, res: express.Respons
   
   res.send = function(body?: any) {
     // Ensure CORS headers are set before sending
-    if (origin) {
+    if (origin && origin !== '*') {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
     } else {
