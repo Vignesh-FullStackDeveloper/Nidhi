@@ -15,8 +15,13 @@ dotenv.config();
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// Middleware - CORS configuration
+app.use(cors({
+  origin: true, // Allow all origins (or specify your frontend domain)
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -26,6 +31,9 @@ const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
 if (!isVercel) {
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 }
+
+// Handle OPTIONS requests for CORS preflight
+app.options('*', cors());
 
 // Health check
 app.get('/health', (req, res) => {
