@@ -82,67 +82,10 @@ async function initializeDatabase() {
 // Vercel serverless function handler
 export default async function handler(req: express.Request, res: express.Response) {
   // CORS is handled by the cors middleware in Express app
-  // Just pass the request to Express
-  
-  // Set CORS headers FIRST before anything else - CRITICAL for Vercel
-  const origin = req.headers.origin || req.headers.referer?.split('/').slice(0, 3).join('/');
-  
-  // Always set CORS headers
-  if (origin && origin !== '*') {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
-  res.setHeader('Access-Control-Max-Age', '86400');
-  
   // Initialize database on first request
   await initializeDatabase();
   
-  // Wrap response methods to ensure CORS headers persist
-  const originalEnd = res.end.bind(res);
-  const originalJson = res.json.bind(res);
-  const originalSend = res.send.bind(res);
-  
-  res.end = function(chunk?: any, encoding?: any) {
-    // Ensure CORS headers are set before ending
-    if (origin && origin !== '*') {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-    } else {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-    }
-    return originalEnd(chunk, encoding);
-  };
-  
-  res.json = function(body?: any) {
-    // Ensure CORS headers are set before sending JSON
-    if (origin && origin !== '*') {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-    } else {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-    }
-    return originalJson(body);
-  };
-  
-  res.send = function(body?: any) {
-    // Ensure CORS headers are set before sending
-    if (origin && origin !== '*') {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-    } else {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-    }
-    return originalSend(body);
-  };
-  
   // Handle the request with Express app
-  // Only call app() for non-OPTIONS requests
   app(req, res);
 }
 
