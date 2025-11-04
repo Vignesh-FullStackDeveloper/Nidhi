@@ -68,7 +68,7 @@ const TransactionsPage = () => {
     }
   };
 
-  const handleChangePage = (_event: unknown, newPage: number) => {
+  const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
   };
 

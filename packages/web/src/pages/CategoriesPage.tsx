@@ -135,7 +135,7 @@ const CategoriesPage = () => {
       </Box>
 
       <Paper sx={{ mb: 2 }}>
-        <Tabs value={currentTab} onChange={(_e, value) => setCurrentTab(value)}>
+        <Tabs value={currentTab} onChange={(_, value) => setCurrentTab(value)}>
           <Tab label="Income Categories" value="INCOME" />
           <Tab label="Expense Categories" value="EXPENSE" />
         </Tabs>
