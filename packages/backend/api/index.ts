@@ -96,6 +96,21 @@ async function initializeDatabase() {
 
 // Export the Express app as a serverless function
 export default async function handler(req: express.Request, res: express.Response) {
+  // CRITICAL: Handle OPTIONS requests BEFORE anything else - don't even touch Express
+  if (req.method === 'OPTIONS') {
+    const origin = req.headers.origin || '*';
+    
+    res.setHeader('Access-Control-Allow-Origin', origin === '*' ? '*' : origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    
+    res.status(200);
+    res.end();
+    return;
+  }
+  
   // Set CORS headers FIRST before anything else - CRITICAL for Vercel
   const origin = req.headers.origin || req.headers.referer?.split('/').slice(0, 3).join('/');
   
@@ -111,13 +126,6 @@ export default async function handler(req: express.Request, res: express.Respons
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
   res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
   res.setHeader('Access-Control-Max-Age', '86400');
-  
-  // Handle preflight OPTIONS request immediately - MUST return before Express
-  if (req.method === 'OPTIONS') {
-    res.status(200);
-    res.end();
-    return;
-  }
   
   // Initialize database on first request
   await initializeDatabase();
