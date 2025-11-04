@@ -101,15 +101,7 @@ export default async function handler(req: express.Request, res: express.Respons
   if (req.method === 'OPTIONS') {
     const origin = req.headers.origin || '*';
     
-    // Set all CORS headers
-    res.setHeader('Access-Control-Allow-Origin', origin === '*' ? '*' : origin);
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Max-Age', '86400');
-    
-    // Return 200 immediately - don't call Express, don't initialize DB, nothing
-    // Use writeHead to ensure headers are set before status
+    // Set all CORS headers using writeHead to ensure they're committed
     res.writeHead(200, {
       'Access-Control-Allow-Origin': origin === '*' ? '*' : origin,
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
@@ -118,7 +110,7 @@ export default async function handler(req: express.Request, res: express.Respons
       'Access-Control-Max-Age': '86400'
     });
     res.end();
-    return Promise.resolve(); // Return resolved promise to prevent any further processing
+    return; // Return immediately - don't call Express, don't initialize DB, nothing
   }
   
   // Set CORS headers FIRST before anything else - CRITICAL for Vercel
