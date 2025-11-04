@@ -40,6 +40,11 @@ export const authenticate = async (
 
 export const authorize = (...roles: UserRole[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
+    // Skip authorization for OPTIONS requests (CORS preflight)
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
+    
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
