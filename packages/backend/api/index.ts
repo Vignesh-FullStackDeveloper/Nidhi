@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { authRouter } from '../src/routes/auth';
@@ -15,29 +16,12 @@ dotenv.config();
 const app = express();
 
 // CORS middleware - must be first
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  // Allow any origin
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
-  res.setHeader('Access-Control-Max-Age', '86400');
-  
-  // Handle preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  
-  next();
-});
+app.use(cors({
+  origin: "*",
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  credentials: false // Must be false when origin is "*"
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -97,38 +81,8 @@ async function initializeDatabase() {
 // Export the Express app as a serverless function
 // Vercel serverless function handler
 export default async function handler(req: express.Request, res: express.Response) {
-  // CRITICAL: Handle OPTIONS requests BEFORE anything else - don't even touch Express
-  // Check method first thing - return immediately without any async operations
-  const method = (req.method || '').toUpperCase();
-  
-  // Handle OPTIONS preflight requests immediately
-  if (method === 'OPTIONS') {
-    // Get origin from headers - handle both localhost and Vercel deployments
-    const origin = req.headers.origin || req.headers['x-forwarded-host'] || '*';
-    
-    // Log for debugging
-    console.log('[CORS] OPTIONS request:', { 
-      origin, 
-      method: req.method, 
-      url: req.url
-    });
-    
-    // Set all CORS headers - use origin if provided, otherwise allow all
-    const corsHeaders: Record<string, string> = {
-      'Access-Control-Allow-Origin': origin === '*' ? '*' : origin,
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
-      'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Max-Age': '86400'
-    };
-    
-    // Send response immediately - don't call Express, don't initialize DB, nothing
-    res.writeHead(200, corsHeaders);
-    res.end();
-    
-    // Return immediately - this prevents Express from processing the request
-    return;
-  }
+  // CORS is handled by the cors middleware in Express app
+  // Just pass the request to Express
   
   // Set CORS headers FIRST before anything else - CRITICAL for Vercel
   const origin = req.headers.origin || req.headers.referer?.split('/').slice(0, 3).join('/');
