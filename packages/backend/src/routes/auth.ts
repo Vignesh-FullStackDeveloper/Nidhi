@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -98,7 +98,17 @@ router.post(
 // Login
 router.post(
   '/login',
-  [body('email').isEmail(), body('password').notEmpty()],
+  [
+    // Skip validation for OPTIONS
+    (req: Request, res: Response, next: NextFunction) => {
+      if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+      }
+      next();
+    },
+    body('email').isEmail(), 
+    body('password').notEmpty()
+  ],
   async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
