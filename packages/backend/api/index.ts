@@ -14,7 +14,31 @@ dotenv.config();
 
 const app = express();
 
-// Middleware - Remove Express CORS, we'll handle it manually in the handler
+// CORS middleware - must be first
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Allow any origin
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -70,38 +94,24 @@ async function initializeDatabase() {
   }
 }
 
-// Helper function to set CORS headers
-function setCORSHeaders(req: express.Request, res: express.Response) {
-  // Get origin from request
+// Export the Express app as a serverless function
+export default async function handler(req: express.Request, res: express.Response) {
+  // Set CORS headers FIRST before anything else
   const origin = req.headers.origin;
   
-  // Allow all origins (including localhost for development)
-  // In production, you might want to whitelist specific domains
   if (origin) {
-    // Allow any origin - this is permissive for development
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   } else {
-    // No origin header (e.g., direct API calls) - allow all
     res.setHeader('Access-Control-Allow-Origin', '*');
   }
   
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
   res.setHeader('Access-Control-Max-Age', '86400');
   
-  // Log for debugging (can remove in production)
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('CORS Headers set for origin:', origin || 'none');
-  }
-}
-
-// Export the Express app as a serverless function
-export default async function handler(req: express.Request, res: express.Response) {
-  // Set CORS headers first
-  setCORSHeaders(req, res);
-  
-  // Handle preflight OPTIONS request - return early before Express processing
+  // Handle preflight OPTIONS request immediately
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -109,24 +119,41 @@ export default async function handler(req: express.Request, res: express.Respons
   // Initialize database on first request
   await initializeDatabase();
   
-  // Wrap res.end to ensure CORS headers are always set
+  // Wrap response methods to ensure CORS headers persist
   const originalEnd = res.end.bind(res);
+  const originalJson = res.json.bind(res);
+  const originalSend = res.send.bind(res);
+  
   res.end = function(chunk?: any, encoding?: any) {
-    setCORSHeaders(req, res);
+    // Ensure CORS headers are set before ending
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
     return originalEnd(chunk, encoding);
   };
   
-  // Wrap res.json to ensure CORS headers are always set
-  const originalJson = res.json.bind(res);
   res.json = function(body?: any) {
-    setCORSHeaders(req, res);
+    // Ensure CORS headers are set before sending JSON
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
     return originalJson(body);
   };
   
-  // Wrap res.send to ensure CORS headers are always set
-  const originalSend = res.send.bind(res);
   res.send = function(body?: any) {
-    setCORSHeaders(req, res);
+    // Ensure CORS headers are set before sending
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
     return originalSend(body);
   };
   
