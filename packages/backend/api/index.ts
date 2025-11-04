@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { authRouter } from '../src/routes/auth';
@@ -15,13 +14,7 @@ dotenv.config();
 
 const app = express();
 
-// Middleware - CORS configuration
-app.use(cors({
-  origin: true, // Allow all origins (or specify your frontend domain)
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-}));
+// Middleware - Remove Express CORS, we'll handle it manually in the handler
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -32,8 +25,7 @@ if (!isVercel) {
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 }
 
-// Handle OPTIONS requests for CORS preflight
-app.options('*', cors());
+// CORS is handled in the handler function for Vercel serverless functions
 
 // Health check
 app.get('/health', (req, res) => {
@@ -81,7 +73,7 @@ async function initializeDatabase() {
 // Export the Express app as a serverless function
 export default async function handler(req: express.Request, res: express.Response) {
   // Set CORS headers manually for Vercel serverless functions
-  const origin = req.headers.origin;
+  const origin = req.headers.origin || req.headers.referer?.split('/').slice(0, 3).join('/');
   
   // Allow all origins - reflect the origin if present, otherwise allow all
   if (origin) {
@@ -95,13 +87,26 @@ export default async function handler(req: express.Request, res: express.Respons
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
   res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
   
-  // Handle preflight OPTIONS request
+  // Handle preflight OPTIONS request - return early before Express processing
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
   
   // Initialize database on first request
   await initializeDatabase();
+  
+  // Wrap Express handler to ensure CORS headers are preserved
+  const originalEnd = res.end;
+  res.end = function(chunk?: any, encoding?: any) {
+    // Ensure CORS headers are set before sending response
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    return originalEnd.call(this, chunk, encoding);
+  };
   
   // Handle the request with Express app
   return app(req, res);
