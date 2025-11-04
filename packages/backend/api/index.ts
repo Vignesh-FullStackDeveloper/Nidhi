@@ -15,12 +15,14 @@ dotenv.config();
 
 const app = express();
 
-// CORS middleware - must be first
+// CORS middleware - must be first - allow all origins
 app.use(cors({
-  origin: "*",
+  origin: true, // Allow all origins
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  credentials: false // Must be false when origin is "*"
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 200
 }));
 
 app.use(express.json());
@@ -81,7 +83,26 @@ async function initializeDatabase() {
 // Export the Express app as a serverless function
 // Vercel serverless function handler
 export default async function handler(req: express.Request, res: express.Response) {
-  // CORS is handled by the cors middleware in Express app
+  // CRITICAL: Handle OPTIONS preflight requests immediately
+  if (req.method === 'OPTIONS') {
+    // Set CORS headers for OPTIONS
+    const origin = req.headers.origin || '*';
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    res.status(200).end();
+    return;
+  }
+  
+  // Set CORS headers for all other requests
+  const origin = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  
   // Initialize database on first request
   await initializeDatabase();
   
