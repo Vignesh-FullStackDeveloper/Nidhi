@@ -95,17 +95,20 @@ router.post(
   }
 );
 
-// Login
+// Login - OPTIONS handler first
+router.options('/login', (req: Request, res: Response) => {
+  const origin = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin === '*' ? '*' : origin);
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.status(200).end();
+});
+
+// Login - POST handler
 router.post(
   '/login',
   [
-    // Skip validation for OPTIONS
-    (req: Request, res: Response, next: NextFunction) => {
-      if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-      }
-      next();
-    },
     body('email').isEmail(), 
     body('password').notEmpty()
   ],
