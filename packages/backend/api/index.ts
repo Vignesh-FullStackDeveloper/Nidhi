@@ -80,6 +80,18 @@ async function initializeDatabase() {
 
 // Export the Express app as a serverless function
 export default async function handler(req: express.Request, res: express.Response) {
+  // Set CORS headers manually for Vercel serverless functions
+  const origin = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
   // Initialize database on first request
   await initializeDatabase();
   
