@@ -95,21 +95,22 @@ async function initializeDatabase() {
 }
 
 // Export the Express app as a serverless function
+// Vercel serverless function handler
 export default async function handler(req: express.Request, res: express.Response) {
   // CRITICAL: Handle OPTIONS requests BEFORE anything else - don't even touch Express
   // Check method first thing - return immediately without any async operations
-  const method = req.method?.toUpperCase() || '';
+  const method = (req.method || '').toUpperCase();
   
+  // Handle OPTIONS preflight requests immediately
   if (method === 'OPTIONS') {
     // Get origin from headers - handle both localhost and Vercel deployments
     const origin = req.headers.origin || req.headers['x-forwarded-host'] || '*';
     
     // Log for debugging
-    console.log('OPTIONS request received:', { 
+    console.log('[CORS] OPTIONS request:', { 
       origin, 
       method: req.method, 
-      url: req.url,
-      headers: Object.keys(req.headers)
+      url: req.url
     });
     
     // Set all CORS headers - use origin if provided, otherwise allow all
@@ -121,12 +122,12 @@ export default async function handler(req: express.Request, res: express.Respons
       'Access-Control-Max-Age': '86400'
     };
     
-    // Use writeHead to ensure headers are committed - MUST be synchronous
+    // Send response immediately - don't call Express, don't initialize DB, nothing
     res.writeHead(200, corsHeaders);
     res.end();
     
-    // Return immediately - don't call Express, don't initialize DB, nothing
-    return Promise.resolve();
+    // Return immediately - this prevents Express from processing the request
+    return;
   }
   
   // Set CORS headers FIRST before anything else - CRITICAL for Vercel
@@ -187,6 +188,7 @@ export default async function handler(req: express.Request, res: express.Respons
   };
   
   // Handle the request with Express app
-  return app(req, res);
+  // Only call app() for non-OPTIONS requests
+  app(req, res);
 }
 
