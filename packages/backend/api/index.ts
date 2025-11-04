@@ -99,18 +99,27 @@ export default async function handler(req: express.Request, res: express.Respons
   // CRITICAL: Handle OPTIONS requests BEFORE anything else - don't even touch Express
   // Check method first thing - return immediately without any async operations
   if (req.method === 'OPTIONS') {
-    const origin = req.headers.origin || '*';
+    // Get origin from headers - handle both localhost and Vercel deployments
+    const origin = req.headers.origin || req.headers['x-forwarded-host'] || '*';
     
-    // Set all CORS headers using writeHead to ensure they're committed
-    res.writeHead(200, {
+    // Log for debugging (remove in production)
+    console.log('OPTIONS request received:', { origin, method: req.method, url: req.url });
+    
+    // Set all CORS headers - use origin if provided, otherwise allow all
+    const corsHeaders = {
       'Access-Control-Allow-Origin': origin === '*' ? '*' : origin,
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Max-Age': '86400'
-    });
+    };
+    
+    // Use writeHead to ensure headers are committed
+    res.writeHead(200, corsHeaders);
     res.end();
-    return; // Return immediately - don't call Express, don't initialize DB, nothing
+    
+    // Return immediately - don't call Express, don't initialize DB, nothing
+    return;
   }
   
   // Set CORS headers FIRST before anything else - CRITICAL for Vercel
