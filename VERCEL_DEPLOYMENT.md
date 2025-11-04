@@ -186,6 +186,15 @@ Open browser console (F12) and check:
 4. Verify `DATABASE_URL` is correct
 5. Check Prisma client is generated (should be automatic)
 
+**Uploads directory error:**
+- ✅ **Fixed:** The app now uses memory storage on Vercel
+- Files are stored in memory temporarily (won't persist)
+- For production file uploads, implement cloud storage:
+  - Supabase Storage (recommended)
+  - AWS S3
+  - Cloudinary
+  - See note below about file uploads
+
 **Database connection errors:**
 - For Supabase: Use connection pooler URL (port 6543)
 - Add `?pgbouncer=true&connection_limit=1` to connection string
@@ -195,6 +204,26 @@ Open browser console (F12) and check:
 - Vercel free tier: 10 seconds max
 - Hobby tier: 30 seconds max (configured in vercel.json)
 - Check if database queries are slow
+
+### File Uploads on Vercel
+
+⚠️ **Important:** File uploads currently work but files are stored in memory and won't persist after the function execution.
+
+**For production file uploads, you need cloud storage:**
+
+1. **Supabase Storage (Recommended):**
+   - Free tier: 1GB storage, 2GB bandwidth/month
+   - Easy integration with Supabase database
+   - See: https://supabase.com/docs/guides/storage
+
+2. **AWS S3:**
+   - Free tier: 5GB storage, 20,000 GET requests/month
+   - See: https://aws.amazon.com/s3/
+
+3. **Cloudinary:**
+   - Free tier: 25GB storage, 25GB bandwidth/month
+   - Great for image optimization
+   - See: https://cloudinary.com/
 
 ### Frontend Issues
 

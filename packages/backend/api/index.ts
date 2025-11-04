@@ -22,7 +22,10 @@ app.use(express.urlencoded({ extended: true }));
 
 // Static files for uploads (Note: Vercel serverless functions don't support persistent file storage)
 // For production, use cloud storage like AWS S3, Cloudinary, or Supabase Storage
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+if (!isVercel) {
+  app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+}
 
 // Health check
 app.get('/health', (req, res) => {

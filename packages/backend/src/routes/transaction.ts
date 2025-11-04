@@ -157,15 +157,20 @@ router.post(
           organizationId: req.user!.organizationId,
           createdById: req.user!.id,
           categoryId: categoryId || null,
-          attachments: files
+          attachments: files && files.length > 0
             ? {
-                create: files.map(file => ({
-                  filename: file.filename,
-                  originalName: file.originalname,
-                  mimeType: file.mimetype,
-                  size: file.size,
-                  path: file.path
-                }))
+                create: files.map(file => {
+                  // For memory storage (Vercel), file.path is undefined
+                  // Use a placeholder path or upload to cloud storage
+                  const filePath = file.path || `/uploads/${file.filename || 'temp-' + Date.now()}`;
+                  return {
+                    filename: file.filename || file.originalname,
+                    originalName: file.originalname,
+                    mimeType: file.mimetype,
+                    size: file.size,
+                    path: filePath
+                  };
+                })
               }
             : undefined
         },
