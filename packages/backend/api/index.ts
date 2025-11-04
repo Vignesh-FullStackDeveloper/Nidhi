@@ -15,34 +15,30 @@ dotenv.config();
 
 const app = express();
 
-// CORS middleware - must be first - allow all origins
+// CORS - Allow all origins
 app.use(cors({
-  origin: true, // Allow all origins
+  origin: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   credentials: true,
-  preflightContinue: false,
   optionsSuccessStatus: 200
 }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static files for uploads (Note: Vercel serverless functions don't support persistent file storage)
-// For production, use cloud storage like AWS S3, Cloudinary, or Supabase Storage
+// Static files (local dev only)
 const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
 if (!isVercel) {
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 }
-
-// CORS is handled in the handler function for Vercel serverless functions
 
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Routes
+// API Routes
 app.use('/api/auth', authRouter);
 app.use('/api/organizations', organizationRouter);
 app.use('/api/users', userRouter);
@@ -53,71 +49,50 @@ app.use('/api/reports', reportRouter);
 // Error handling
 app.use(errorHandler);
 
-// Initialize database connection on cold start
+// Database initialization
 let dbInitialized = false;
 
 async function initializeDatabase() {
-  if (dbInitialized) {
-    return;
-  }
-  
+  if (dbInitialized) return;
+
   try {
-    console.log('🔌 Connecting to database...');
     const connected = await checkDatabaseConnection();
-    
     if (!connected) {
-      console.error('❌ Failed to connect to database. Please check your DATABASE_URL');
       throw new Error('Database connection failed');
     }
-    
-    console.log('🔧 Setting up database schema...');
     await ensureDatabaseSchema();
     dbInitialized = true;
-    console.log('✅ Database initialized');
   } catch (error: any) {
-    console.error('❌ Database initialization error:', error.message);
+    console.error('Database initialization error:', error.message);
     throw error;
   }
 }
 
-// Export the Express app as a serverless function
 // Vercel serverless function handler
 export default async function handler(req: express.Request, res: express.Response) {
-  // CRITICAL: Handle OPTIONS preflight requests IMMEDIATELY - before anything else
-  const method = (req.method || '').toUpperCase();
-  
-  if (method === 'OPTIONS') {
-    // Get origin from request
-    const origin = req.headers.origin || req.headers['x-forwarded-host'] || '*';
-    
-    console.log('[CORS] OPTIONS request:', { origin, url: req.url });
-    
-    // Set ALL CORS headers immediately
+  // Handle OPTIONS preflight
+  if (req.method?.toUpperCase() === 'OPTIONS') {
+    const origin = req.headers.origin || '*';
     res.writeHead(200, {
       'Access-Control-Allow-Origin': origin === '*' ? '*' : origin,
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
       'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Max-Age': '86400',
-      'Content-Length': '0'
+      'Access-Control-Max-Age': '86400'
     });
     res.end();
     return;
   }
-  
-  // For all other requests, set CORS headers first
-  const origin = req.headers.origin || req.headers['x-forwarded-host'] || '*';
-  
-  // Set CORS headers BEFORE Express processes
+
+  // Set CORS headers for all requests
+  const origin = req.headers.origin || '*';
   res.setHeader('Access-Control-Allow-Origin', origin === '*' ? '*' : origin);
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  
-  // Initialize database on first request
+
+  // Initialize database
   await initializeDatabase();
-  
-  // Handle the request with Express app
+
+  // Handle request
   app(req, res);
 }
 
