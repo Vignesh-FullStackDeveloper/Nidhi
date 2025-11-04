@@ -72,20 +72,28 @@ async function initializeDatabase() {
 
 // Helper function to set CORS headers
 function setCORSHeaders(req: express.Request, res: express.Response) {
-  const origin = req.headers.origin || 
-                 req.headers.referer?.split('/').slice(0, 3).join('/') ||
-                 '*';
+  // Get origin from request
+  const origin = req.headers.origin;
   
-  if (origin && origin !== '*') {
+  // Allow all origins (including localhost for development)
+  // In production, you might want to whitelist specific domains
+  if (origin) {
+    // Allow any origin - this is permissive for development
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   } else {
+    // No origin header (e.g., direct API calls) - allow all
     res.setHeader('Access-Control-Allow-Origin', '*');
   }
   
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
   res.setHeader('Access-Control-Max-Age', '86400');
+  
+  // Log for debugging (can remove in production)
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('CORS Headers set for origin:', origin || 'none');
+  }
 }
 
 // Export the Express app as a serverless function
