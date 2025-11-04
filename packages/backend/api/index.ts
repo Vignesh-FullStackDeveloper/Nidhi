@@ -83,22 +83,33 @@ async function initializeDatabase() {
 // Export the Express app as a serverless function
 // Vercel serverless function handler
 export default async function handler(req: express.Request, res: express.Response) {
-  // CRITICAL: Handle OPTIONS preflight requests immediately
-  if (req.method === 'OPTIONS') {
-    // Set CORS headers for OPTIONS
-    const origin = req.headers.origin || '*';
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Max-Age', '86400');
-    res.status(200).end();
+  // CRITICAL: Handle OPTIONS preflight requests IMMEDIATELY - before anything else
+  const method = (req.method || '').toUpperCase();
+  
+  if (method === 'OPTIONS') {
+    // Get origin from request
+    const origin = req.headers.origin || req.headers['x-forwarded-host'] || '*';
+    
+    console.log('[CORS] OPTIONS request:', { origin, url: req.url });
+    
+    // Set ALL CORS headers immediately
+    res.writeHead(200, {
+      'Access-Control-Allow-Origin': origin === '*' ? '*' : origin,
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Max-Age': '86400',
+      'Content-Length': '0'
+    });
+    res.end();
     return;
   }
   
-  // Set CORS headers for all other requests
-  const origin = req.headers.origin || '*';
-  res.setHeader('Access-Control-Allow-Origin', origin);
+  // For all other requests, set CORS headers first
+  const origin = req.headers.origin || req.headers['x-forwarded-host'] || '*';
+  
+  // Set CORS headers BEFORE Express processes
+  res.setHeader('Access-Control-Allow-Origin', origin === '*' ? '*' : origin);
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
